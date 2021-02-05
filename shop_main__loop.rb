@@ -1,70 +1,10 @@
-require "./Produkt.rb"
+require 'io/console'
+require "./Shop__Classes_Arrays.rb"
+
 
 shoploop = "s"
 total=0
 saved_total=0
-
-
-$discquan = 
-[
-    # discount, quantity bonus, quantity condition
-    [0,0,1], #avoid div by 0
-    [0,1,1], #Buy One Get One Free
-    [0,1,2], #Buy Two Get One Free
-    [0.5,0,5], #Buy 5 To Get 50% off
-    [0.1,0,1], #10% off
-    [0.25,0,1] #25% off
-]
-
-$disctext = Hash[
-    0 => "No discount",
-    1 => "Buy One get One free",
-    2 => "Buy Two get One Free",
-    3 => "Buy Five to get 50% Off",
-    4 => "10% Off",
-    5 => "25% Off"
-                ]
-
-$receipt_arr= Array.new 
-$produkts_arr= Array.new
-
-
-#the name is lost when added to the arr so a name param is needed
-bread = Produkt.new("bread",10,5)
-$produkts_arr << bread
-orange = Produkt.new("orange",8,1)
-$produkts_arr << orange
-cola = Produkt.new("cola",3,2)
-$produkts_arr << cola
-cocoa = Produkt.new("cocoa",12,3)
-$produkts_arr << cocoa
-
-
-def  getfinprice(baseprice, quantity, discnr = 0)
-    price_saved = Array.new 
-    if quantity / $discquan[discnr][2] >= 1
-        if $discquan[discnr][0] > 0
-          finalprice = (baseprice - baseprice * $discquan[discnr][0]) * quantity
-          saved =  baseprice * quantity - finalprice
-        else
-        # not like you buy 100 ORANGES AND THE CASHIER SAYS BUY ONE GET ONE FREE NOW U HAVE 200 ORANGES ...
-             freeq=0
-             opquantity = quantity
-            while opquantity - $discquan[discnr][2] >= 1
-                opquantity -= $discquan[discnr][2]
-                freeq+= $discquan[discnr][1]
-                opquantity -= $discquan[discnr][1]
-            end
-            saved = baseprice * freeq
-            finalprice = baseprice * (quantity - freeq)
-        end
-    else 
-        puts "\nNo discount."
-        finalprice = baseprice * quantity
-        saved = 0
-    end
-    return price_saved << finalprice << saved << quantity
-end
 
 
 def buyf(prodnr=0)
@@ -72,31 +12,34 @@ def buyf(prodnr=0)
         prodnr=gets
     end
     if prodnr.match /\A\d+\Z/
-        puts "Enter desired quantity:"
-        prodq=gets
-        if Integer(prodnr) <= $produkts_arr.count && Integer(prodnr) > 0
-            if prodq.match(/\A\d+\Z/) && Integer(prodq) > 0
-                fprice = getfinprice($produkts_arr[Integer(prodnr)-1].baseprice, Integer(prodq), $produkts_arr[Integer(prodnr)-1].discnr)
-                puts "You bought: "
-                print "produkt: #{$produkts_arr[Integer(prodnr)-1].name}   baseprice: #{$produkts_arr[Integer(prodnr)-1].baseprice}     discount number: #{$produkts_arr[Integer(prodnr)-1].discnr}  quantity: #{Integer(fprice[2])} final price: #{fprice[0]}  saved: #{fprice[1]}\n\n\n"
-                $receipt_arr << [$produkts_arr[Integer(prodnr)-1].name, $produkts_arr[Integer(prodnr)-1].baseprice, $produkts_arr[Integer(prodnr)-1].discnr, fprice[2], fprice[0], fprice[1]]
+        if Integer(prodnr) <= $produkts_arr.count
+            puts "Enter desired quantity for -| #{$produkts_arr[Integer(prodnr)-1].name.upcase} |- and confirm by pressing Enter:"
+            prodq=gets
+            if prodq.match(/\A\d+\Z/)
+                puts "\n\nYou bought: "
+                $produkts_b_arr << Produkt_Bought.new($produkts_arr[Integer(prodnr)-1].name, $produkts_arr[Integer(prodnr)-1].price, $produkts_arr[Integer(prodnr)-1].discnr, prodq.strip!)
+                print "produkt: #{$produkts_b_arr.last.name}   baseprice: #{$produkts_b_arr.last.price}     discount : #{$disctext[$produkts_b_arr.last.discnr]}  quantity: #{$produkts_b_arr.last.price_saved[2]} final price: #{$produkts_b_arr.last.price_saved[0]}  saved: #{$produkts_b_arr.last.price_saved[1]}\n\n\n"
+
+                #2021.02.05 10,51 creaes err when presing enter needs to press enter twice and this ads a char for the next input like CR and it doesent match any option triggered falsely and code executes normally
+                # puts "Press any Key to continue.\n\n"
+                # STDIN.getch
+                # print "            \r"
+
             else
-            puts "\nEnter a Number for the desired quantity please."
-            end 
-        else
-            puts "\nEnter a Number within the Produkt range please"
+            puts "\nEnter a number for the quantity.\n\n"
         end 
+    else
+        puts "\nEnter a number within the produkt range.\n\n"
+    end 
     else 
-        puts "Enter a Number for the desired Produkt please."
+    puts "\nEnter a number for the produkt.\n\n"
     end
 end
 
 
-
-#until (shoploop == "r" || shoploop == "l")
 until (shoploop == "l")
 
-    case shoploop
+    case shoploop  
 
         when "l"
         puts "\nThank you !  Please come again !"
@@ -104,20 +47,22 @@ until (shoploop == "l")
         when "r"
             puts "\nReceipt: "
             ii=1
-            $receipt_arr.each {
-                |x| print "#{ii}. produkt: #{x[0]}   baseprice: #{x[1]}     discount: #{$disctext[x[2]]}  quantity: #{x[3]} final price: #{x[4]}  saved: #{x[5]} \n"
-                total +=x[4]
-                saved_total +=x[5]
+            $produkts_b_arr.each {
+                |x| 
+                print "#{ii}. produkt: #{x.name}   baseprice: #{x.price}     discount : #{$disctext[x.discnr]}  quantity: #{x.pquan} final price: #{x.price_saved[0]}  saved: #{x.price_saved[1]}\n"
+                total +=x.price
+                saved_total +=x.price_saved[1]
                 ii=ii+1
-                            }
-            print "total:  #{total}   saved total:  #{saved_total} \n"
+                                 }
+
+            puts "total:  #{total}   saved total:  #{saved_total} \n"
             puts "Thank you for shopping !  Please come again !"
 
         when "s"  
             puts 
             i=1
             $produkts_arr.each {
-                |x| print "#{i}. produkt: #{x.name}   baseprice: #{x.baseprice}     discount: #{$disctext[x.discnr]} \n"
+                |x| print "#{i}. produkt: #{x.name}   baseprice: #{x.price}     discount number: #{x.discnr} \n"
                 i=i+1
                                }
 
@@ -125,28 +70,31 @@ until (shoploop == "l")
             puts
             i=1
             $produkts_arr.each {
-                |x| print "#{i}. produkt: #{x.name}   baseprice: #{x.baseprice}     discount number: #{x.discnr}\n"
+                |x| print "#{i}. produkt: #{x.name}   baseprice: #{x.price}     discount number: #{x.discnr}\n"
                 i=i+1
-                               }
-            puts "Enter your choise (produkt number)"
+                            }
+            puts "Enter your choise (produkt number) and confirm by pressing Enter."
 
             buyf()
-
+            
         when /\A\d+\Z/
-            # https://medium.com/launch-school/number-validation-with-regex-ruby-393954e46797
-            # obj = obj.to_s unless obj.is_a? String
             buyf(shoploop)
-
             puts 
             i=1
             $produkts_arr.each {
-                |x| print "#{i}. produkt: #{x.name}   baseprice: #{x.baseprice}     discount: #{$disctext[x.discnr]} \n"
+                |x| print "#{i}. produkt: #{x.name}   baseprice: #{x.price}     discount number: #{x.discnr} \n"
                 i=i+1
                                }
+        else 
+            puts "\nChiose did not match any option.\n\n"    
+            i=1
+            $produkts_arr.each {
+                |x| print "#{i}. produkt: #{x.name}   baseprice: #{x.price}     discount number: #{x.discnr} \n"
+                i=i+1
+                               }                       
     end
 
-    puts "\nEnter your choise (produkt number)."
+    puts "\nEnter your choise (Produkt Number) and cofirm by pressing Enter."
     puts "Menu: Shop / Buy / Receipt  Check Out / Leave   (s/b/r/l)."
     shoploop = gets.downcase.strip!
-
 end
